@@ -1,45 +1,48 @@
+import peasy.test.*;
+import peasy.org.apache.commons.math.*;
+import peasy.*;
+import peasy.org.apache.commons.math.geometry.*;
 boolean go=true;
 boolean shouldStop=true;
 int cellSize=5;
-int offset = 130;
-int matrixSize=50;
-int neighbour = 3;
-int fr = 10; //Frames
-CellMatrix cm;
-
+PeasyCam camera;
+static int matrixSize=50;
+static int neighbour = 3;
+int fr = 15; //Frames
 
 void setup(){
-  size(900,500,P3D);camera();
-  
-  cm = new CellMatrix();
-  cm.falseMatrix();
-  cm.matrix[matrixSize/2][matrixSize/2][matrixSize/2]=1;
+  //setting up some initial things
+  size(400,400,P3D);
+  camera = new PeasyCam(this, 500);
+  camera.lookAt(125, 125, 0);
+  CellMatrix.falseMatrix();
+  CellMatrix.matrix[matrixSize/2][matrixSize/2][matrixSize/2]=1;
   frameRate(fr);
   lights();
   background(0);
 }
 void draw(){
-  translate(440,0,-250);
-  rotateY(PI-mouseX*0.02);
 background(0);
-frameRate(fr);
-    for(int x = 0; x<cm.matrixX; x++){
-        for(int y = 0; y<cm.matrixY; y++){
-          for(int z = 0; z<cm.matrixZ; z++){
-            if(cm.matrix[x][y][z]>0 && cm.matrix[x][y][z]<neighbour){
+//Now we draw every single cell
+    for(int x = 0; x<CellMatrix.matrixX; x++){
+        for(int y = 0; y<CellMatrix.matrixY; y++){
+          for(int z = 0; z<CellMatrix.matrixZ; z++){
+            if(CellMatrix.matrix[x][y][z]>0 && CellMatrix.matrix[x][y][z]<neighbour){
               pushMatrix();
-              stroke(#000000,70);
-              int maxnum = max(abs(matrixSize/2-x),abs(matrixSize/2-y),abs(matrixSize/2-z));
-              fill(maxnum*10,maxnum*8,maxnum*10);
-              translate(x*cellSize+offset, y*cellSize+offset, z*cellSize-offset);
-              box(cellSize);
+              stroke(#000000,20);
+              //setting some values for the colors
+              int colorValue = matrixSize*3/2 - (abs(matrixSize/2-x)+abs(matrixSize/2-y)+abs(matrixSize/2-z));
+              //Drawing the squares
+              fill(255-colorValue*255/75,255-colorValue*255/75,255-colorValue*255/75);//Color
+              translate(x*cellSize, y*cellSize, z*cellSize);//Position
+              box(cellSize);//Form
               popMatrix();
             }
           }
         }
       }
   if(go){   
-    cm.iterate();
+    CellMatrix.iterate();
     if (shouldStop)go=false;
   }
   
@@ -49,22 +52,19 @@ frameRate(fr);
 *  This class sets the 3dimensional boolean matrix from which we obtain the information
 *  regarding the position of the active cells.
 */
-class CellMatrix{
-
-   int matrixX=matrixSize,matrixY=matrixSize,matrixZ=matrixSize;
-   int[][][] matrix = new int[matrixX][matrixY][matrixZ];  
-   int[][][] nextMatrix = new int[matrixX][matrixY][matrixZ]; 
-  public void CellMatrix(){
-  }
+static class CellMatrix{
+  public static int matrixX=matrixSize,matrixY=matrixSize,matrixZ=matrixSize;
+  public static int[][][] matrix = new int[matrixX][matrixY][matrixZ];  
+  public static int[][][] nextMatrix = new int[matrixX][matrixY][matrixZ]; 
   
   /**
   *  Sets every cell in the matrix to False
   */
-  public void falseMatrix(){
+  public static void falseMatrix(){
     for(int x = 0; x<matrixX; x++){
       for(int y = 0; y<matrixY; y++){
         for(int z = 0; z<matrixZ; z++){
-          cm.matrix[x][y][z] = 0;
+          CellMatrix.matrix[x][y][z] = 0;
         }
       }
     }
@@ -73,17 +73,17 @@ class CellMatrix{
   /**
   *  Updates every cell
   */
-  public void iterate(){
+  public static void iterate(){
     int counter;
     for(int x = 0; x<matrixX; x++){
       for(int y = 0; y<matrixY; y++){
         for(int z = 0; z<matrixZ; z++){//For each cell in the matrix
-          if (cm.matrix[x][y][z]>0 && cm.matrix[x][y][z]<neighbour){//If it is active
+          if (CellMatrix.matrix[x][y][z]>0 && CellMatrix.matrix[x][y][z]<neighbour){//If it is active
             for(int i = -1; i<2; i++){
               for(int j = -1; j<2; j++){
                 for(int k = -1; k<2; k++){//For each of it's neighbours 
                     
-                  //Tell 'em he's active!
+                  //Tell 'em it's active!
                     if(!(i==0 && j==0 && k==0)){//if the neighbour is not the cell
                     int newX=x,newY=y,newZ=z;//these new values are just to avoid indexOutOfRange errors
                       if(x+i==matrixX)newX=-1;
@@ -92,7 +92,7 @@ class CellMatrix{
                       if(x+i==-1)newX=matrixX;
                       if(y+j==-1)newY=matrixY;
                       if(z+k==-1)newZ=matrixZ;
-                      cm.nextMatrix[newX+i][newY+j][newZ+k]++; //++ it's "neighbours", that is it's value
+                      CellMatrix.nextMatrix[newX+i][newY+j][newZ+k]++; //++ it's "neighbours", that is their value
                     }
                   
                 }
@@ -103,8 +103,8 @@ class CellMatrix{
         }
       }
     }
-    cm.matrix = cm.nextMatrix;//We update the real matrix with the nextMatrix
-    cm.nextMatrix = new int[matrixX][matrixY][matrixZ]; //and reset the nextMatrix
+    CellMatrix.matrix = CellMatrix.nextMatrix;//We update the real matrix with the nextMatrix
+    CellMatrix.nextMatrix = new int[matrixX][matrixY][matrixZ]; //and reset the nextMatrix
   }
     
 }
@@ -129,9 +129,10 @@ else if (key == 's') {//STEP
   shouldStop=true;
   }
   else if (key == 'r') {//RESET
-
-    cm.falseMatrix();
-  cm.matrix[matrixSize/2][matrixSize/2][matrixSize/2]=1;
+    camera = new PeasyCam(this, 500);
+    camera.lookAt(125, 125, 0);
+    CellMatrix.falseMatrix();
+  CellMatrix.matrix[matrixSize/2][matrixSize/2][matrixSize/2]=1;
   go=true;
   shouldStop=true;
   }
@@ -171,4 +172,3 @@ else if (key == 's') {//STEP
    if(fr>1)fr--;
   }
 }
-
